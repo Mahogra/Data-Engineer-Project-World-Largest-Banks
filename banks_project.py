@@ -1,3 +1,4 @@
+# Importing the required libraries
 import requests
 from bs4 import BeautifulSoup
 import  pandas as pd
@@ -8,8 +9,8 @@ from datetime import datetime
 # the website = https://web.archive.org/web/20230908091635/https://en.wikipedia.org/wiki/List_of_largest_banks
 # Code for ETL operations on Country-GDP data
 
-# Importing the required libraries
 
+#Log Function
 def log_progress(message):
     timestamp_format = '%Y-%h-%d-%H:%M:%S' # Year-Monthname-Day-Hour-Minute-Second 
     now = datetime.now() # get current timestamp 
@@ -19,6 +20,7 @@ def log_progress(message):
     ''' This function logs the mentioned message of a given stage of the
     code execution to a log file. Function returns nothing'''
 
+#Extract Function
 def extract(url, table_attribs):
     page = requests.get(url).text
     data = BeautifulSoup(page, 'html.parser')
@@ -36,8 +38,6 @@ def extract(url, table_attribs):
                  }
                 df1 = pd.DataFrame(data_dict, index = [0])
                 df = pd.concat([df, df1], ignore_index = True)
-        
-
     ''' This function aims to extract the required
     information from the website and save it to a data frame. The
     function returns the data frame for further processing. '''
@@ -47,6 +47,7 @@ def extract(url, table_attribs):
     df['MC_USD_Billion'] = USD_list
     return df
 
+#Transform Function
 def transform(df, csv_path):
     exchange_rate= pd.read_csv(csv_path)
     dict = exchange_rate.set_index('Currency').to_dict()['Rate']
@@ -55,13 +56,14 @@ def transform(df, csv_path):
     df['MC_EUR_Billion'] = [np.round(x * dict['EUR'], 2) for x in df['MC_USD_Billion']]
     df['MC_INR_Billion'] = [np.round(x * dict['INR'], 2) for x in df['MC_USD_Billion']]
 
-
     ''' This function accesses the CSV file for exchange rate
     information, and adds three columns to the data frame, each
     containing the transformed version of Market Cap column to
     respective currencies'''
 
     return df
+
+#Load Function
 
 def load_to_csv(df, output_path):
     df.to_csv(output_path)
@@ -73,6 +75,7 @@ def load_to_db(df, sql_connection, table_name):
     ''' This function saves the final data frame to a database
     table with the provided name. Function returns nothing.'''
 
+#Running query for SQL
 def run_query(query_statement, sql_connection):
     print(query_statement)
     query_output = pd.read_sql(query_statement, sql_connection)
@@ -80,16 +83,16 @@ def run_query(query_statement, sql_connection):
     ''' This function runs the query on the database table and
     prints the output on the terminal. Function returns nothing. '''
 
+#Declaration of path and variabels name
 
+url = 'https://web.archive.org/web/20230908091635/https://en.wikipedia.org/wiki/List_of_largest_banks' #The website
+table_attribs = ["Name", "MC_USD_Billion"] #the columns of the dataset
+db_name = 'Banks.db' #Name oof the database
+table_name = 'Largest_banks' #Name of the table
+csv_path  = r'{insert_your_path}' #The path of the csv file for transformation process
+new_csv_path = r'{insert_your_path}' #The path to load csv file
 
-url = 'https://web.archive.org/web/20230908091635/https://en.wikipedia.org/wiki/List_of_largest_banks'
-table_attribs = ["Name", "MC_USD_Billion"]
-db_name = 'Banks.db'
-table_name = 'Largest_banks'
-csv_path  = r'{insert_your_path}'
-new_csv_path = r'{insert_your_path}'
-
-
+#ETL process begins
 log_progress('Preliminaries complete. Initiating ETL process')
 
 df = extract(url, table_attribs)
